@@ -68,8 +68,8 @@ export const useAuthStore = create<AuthState>()(
               status: 'active',
               startDate: new Date().toISOString(),
               endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-              limits: { analyses: 50, exports: 25 },
-              usage: { analyses: 12, exports: 3 }
+              limits: { analyses: 5, exports: 25 },
+              usage: { analyses: 2, exports: 3 }
             }
             
             const token = 'mock-jwt-token'
@@ -110,7 +110,7 @@ export const useAuthStore = create<AuthState>()(
             status: 'active',
             startDate: new Date().toISOString(),
             endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            limits: { analyses: 10, exports: 5 },
+            limits: { analyses: 2, exports: 5 },
             usage: { analyses: 0, exports: 0 }
           }
           
