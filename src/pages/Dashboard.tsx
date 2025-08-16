@@ -156,17 +156,17 @@ export default function Dashboard() {
       color: "bg-success text-success-foreground"
     },
     {
-      title: "Sugestões",
-      description: "Ver recomendações da semana",
-      icon: Sparkles,
-      href: "/sugestoes",
+      title: "Relatórios",
+      description: "Ver todos os leilões",
+      icon: BarChart3,
+      href: "/relatorios",
       color: "bg-warning text-warning-foreground"
     },
     {
-      title: "Meus Arremates",
-      description: "Gerenciar arremates",
+      title: "Comunidade",
+      description: "Chat e trocas",
       icon: TrendingUp,
-      href: "/arremates",
+      href: "/comunidade",
       color: "bg-accent text-accent-foreground"
     }
   ]
