@@ -27,6 +27,14 @@ export interface Subscription {
     exports: number
     activeDevices: number
   }
+  discounts: {
+    visitDiscounts: number // Descontos por visitas/uploads
+    totalSaved: number
+  }
+  deviceSessions: {
+    desktop: string | null
+    mobile: string | null
+  }
 }
 
 interface AuthState {
@@ -79,7 +87,9 @@ export const useAuthStore = create<AuthState>()(
                 states: -1, 
                 bestOpportunities: true 
               },
-              usage: { analyses: 3, exports: 1, activeDevices: 1 }
+              usage: { analyses: 3, exports: 1, activeDevices: 1 },
+              discounts: { visitDiscounts: 2, totalSaved: 20.00 },
+              deviceSessions: { desktop: 'session-123', mobile: null }
             }
             
             const token = 'mock-jwt-token'
@@ -127,7 +137,9 @@ export const useAuthStore = create<AuthState>()(
               states: 1, 
               bestOpportunities: false 
             },
-            usage: { analyses: 0, exports: 0, activeDevices: 1 }
+            usage: { analyses: 0, exports: 0, activeDevices: 1 },
+            discounts: { visitDiscounts: 0, totalSaved: 0 },
+            deviceSessions: { desktop: 'session-456', mobile: null }
           }
           
           const token = 'mock-jwt-token'

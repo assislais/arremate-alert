@@ -26,6 +26,8 @@ interface LeilaoItem {
   categoria: 'veiculos' | 'imoveis' | 'diversos'
   risco: 'baixo' | 'medio' | 'alto'
   interessados: number
+  situacaoItem: string // Nova propriedade: estado físico do item
+  distanciaKm?: number // Para ordenação por distância
 }
 
 export default function Reports() {
@@ -35,8 +37,9 @@ export default function Reports() {
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState<'data' | 'distancia' | 'preco-asc' | 'preco-desc'>('data')
   const [filterState, setFilterState] = useState("")
-  const [filterStatus, setFilterStatus] = useState("")
+      const [filterStatus, setFilterStatus] = useState("")
   const [filterCategory, setFilterCategory] = useState("")
+  const [filterSituacao, setFilterSituacao] = useState("")
 
   useEffect(() => {
     // Mock data loading
@@ -60,7 +63,9 @@ export default function Reports() {
           leiloeiro: 'Leilões SP Premium',
           categoria: 'veiculos',
           risco: 'baixo',
-          interessados: 12
+          interessados: 12,
+          situacaoItem: 'Bom estado geral',
+          distanciaKm: 15.2
         },
         {
           id: '2',
@@ -78,7 +83,9 @@ export default function Reports() {
           leiloeiro: 'Leilões Carioca',
           categoria: 'imoveis',
           risco: 'medio',
-          interessados: 8
+          interessados: 8,
+          situacaoItem: 'Reformado recentemente',
+          distanciaKm: 42.8
         },
         {
           id: '3',
@@ -96,7 +103,9 @@ export default function Reports() {
           leiloeiro: 'Leilões Industriais MG',
           categoria: 'diversos',
           risco: 'alto',
-          interessados: 5
+          interessados: 5,
+          situacaoItem: 'Necessita manutenção',
+          distanciaKm: 28.5
         },
         {
           id: '4',
@@ -114,7 +123,9 @@ export default function Reports() {
           leiloeiro: 'Leilões Sul',
           categoria: 'veiculos',
           risco: 'baixo',
-          interessados: 15
+          interessados: 15,
+          situacaoItem: 'Excelente estado',
+          distanciaKm: 8.7
         }
       ]
       
@@ -133,8 +144,9 @@ export default function Reports() {
       const matchesState = !filterState || item.estado === filterState
       const matchesStatus = !filterStatus || item.status === filterStatus
       const matchesCategory = !filterCategory || item.categoria === filterCategory
+      const matchesSituacao = !filterSituacao || item.situacaoItem.toLowerCase().includes(filterSituacao.toLowerCase())
       
-      return matchesSearch && matchesState && matchesStatus && matchesCategory
+      return matchesSearch && matchesState && matchesStatus && matchesCategory && matchesSituacao
     })
 
     // Apply sorting
@@ -147,15 +159,14 @@ export default function Reports() {
         case 'preco-desc':
           return b.valorAtual - a.valorAtual
         case 'distancia':
-          // Mock distance sorting (would need geolocation)
-          return a.localizacao.localeCompare(b.localizacao)
+          return (a.distanciaKm || 0) - (b.distanciaKm || 0)
         default:
           return 0
       }
     })
 
     setFilteredItems(filtered)
-  }, [items, searchTerm, sortBy, filterState, filterStatus, filterCategory])
+  }, [items, searchTerm, sortBy, filterState, filterStatus, filterCategory, filterSituacao])
 
   const handleSaveInterest = (itemId: string) => {
     // Mock save to interests
@@ -263,11 +274,28 @@ export default function Reports() {
                 </Select>
               </div>
 
+              <div>
+                <label className="text-sm font-medium mb-2 block">Situação do Item</label>
+                <Select value={filterSituacao} onValueChange={setFilterSituacao}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas as situações" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todas as situações</SelectItem>
+                    <SelectItem value="excelente">Excelente estado</SelectItem>
+                    <SelectItem value="bom">Bom estado</SelectItem>
+                    <SelectItem value="regular">Estado regular</SelectItem>
+                    <SelectItem value="ruim">Estado ruim</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <Button 
                 onClick={() => {
                   setFilterState("")
                   setFilterStatus("")
                   setFilterCategory("")
+                  setFilterSituacao("")
                 }}
                 variant="outline"
                 className="w-full"
@@ -362,6 +390,17 @@ export default function Reports() {
                   <span>{formatDate(item.dataLeilao)}</span>
                 </div>
 
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <MapPin className="h-3 w-3" />
+                  <span>{item.situacaoItem}</span>
+                </div>
+
+                {item.distanciaKm && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>📍 {item.distanciaKm.toFixed(1)}km</span>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between pt-2">
                   <div className="flex items-center gap-1">
                     <span className="text-xs text-muted-foreground">⭐ {item.avaliacaoLeiloeiro}</span>
@@ -400,6 +439,7 @@ export default function Reports() {
               setFilterState("")
               setFilterStatus("")
               setFilterCategory("")
+              setFilterSituacao("")
             }}
           >
             Limpar filtros
