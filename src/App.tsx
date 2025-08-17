@@ -16,6 +16,7 @@ import BestOpportunities from "./pages/BestOpportunities";
 import Community from "./pages/Community";
 import Exchanges from "./pages/Exchanges";
 import Terms from "./pages/Terms";
+import AuctionMapPage from "./pages/AuctionMap";
 import NotFound from "./pages/NotFound";
 
 // Layouts
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="assinatura" element={<Subscription />} />
             <Route path="comunidade" element={<Community />} />
             <Route path="trocas" element={<Exchanges />} />
+            <Route path="mapa" element={<AuctionMapPage />} />
             <Route path="termos" element={<Terms />} />
             <Route path="chat" element={<div className="p-8 text-center text-muted-foreground">Chat - Em desenvolvimento</div>} />
           </Route>

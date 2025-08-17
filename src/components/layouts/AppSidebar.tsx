@@ -7,6 +7,7 @@ import {
   CreditCard,
   Heart,
   Home,
+  MapPin,
   MessageCircle,
   Plus,
   Search,
@@ -39,6 +40,7 @@ const mainItems = [
 ]
 
 const secondaryItems = [
+  { title: "Mapa de Leilões", url: "/mapa", icon: MapPin },
   { title: "Calendário", url: "/calendario", icon: Calendar },
   { title: "Assinatura", url: "/assinatura", icon: CreditCard },
   { title: "Chat", url: "/chat", icon: MessageCircle },

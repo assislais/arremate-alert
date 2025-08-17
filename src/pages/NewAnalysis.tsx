@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Link, Globe, MapPin, DollarSign, Calendar, Loader2, CheckCircle } from "lucide-react"
+import { Link, Globe, MapPin, DollarSign, Calendar, Loader2, CheckCircle, ToggleLeft, ToggleRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -268,9 +268,68 @@ export default function NewAnalysis() {
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gradient mb-2">Nova Análise</h1>
         <p className="text-muted-foreground">
-          Cole o link do leilão OU use os filtros para busca por estado
+          Escolha entre analisar um leilão específico ou buscar por filtros
         </p>
       </div>
+
+      {/* Toggle Method Selection */}
+      <Card className="card-glow">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center gap-6">
+            <div className="flex items-center space-x-4">
+              <div className={`flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${
+                useUrl 
+                  ? 'border-primary bg-primary/5 text-primary' 
+                  : 'border-border bg-background/50'
+              }`}>
+                <Link className="h-5 w-5" />
+                <span className="font-medium">URL Específica</span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={!useUrl}
+                  onCheckedChange={(checked) => {
+                    setUseUrl(!checked)
+                    if (checked) {
+                      // Clear URL when switching to filters
+                      form.setValue("leilaoUrl", "")
+                    } else {
+                      // Clear filters when switching to URL
+                      form.setValue("estado", "")
+                      form.setValue("cidade", "")
+                      form.setValue("categoria", "")
+                      form.setValue("tipoBem", "")
+                      form.setValue("status", "")
+                      form.setValue("valorMinimo", undefined)
+                      form.setValue("valorMaximo", undefined)
+                    }
+                  }}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+              
+              <div className={`flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${
+                !useUrl 
+                  ? 'border-primary bg-primary/5 text-primary' 
+                  : 'border-border bg-background/50'
+              }`}>
+                <Globe className="h-5 w-5" />
+                <span className="font-medium">Busca por Filtros</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="text-center mt-4">
+            <p className="text-sm text-muted-foreground">
+              {useUrl 
+                ? "Cole o link direto do leilão que deseja analisar"
+                : "Use filtros para encontrar leilões por estado e outros critérios"
+              }
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Usage Status */}
       {subscription && (
@@ -324,244 +383,239 @@ export default function NewAnalysis() {
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   
-                  <FormField
-                    control={form.control}
-                    name="leilaoUrl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <Link className="h-4 w-4" />
-                          URL do Leilão (Opção 1)
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="https://www.leilaoonline.com.br/leilao/12345"
-                            {...field}
-                            onChange={(e) => {
-                              field.onChange(e)
-                              handleUrlChange(e.target.value)
-                            }}
-                            disabled={!canAnalyze}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Cole o link do leilão específico que deseja analisar
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-border" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-background px-2 text-muted-foreground">OU</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Filtros de Busca (Opção 2)</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Use os filtros para buscar leilões por estado e outros critérios
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {useUrl ? (
                     <FormField
                       control={form.control}
-                      name="estado"
+                      name="leilaoUrl"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Estado</FormLabel>
-                          <Select 
-                            onValueChange={(value) => handleFilterChange("estado", value)} 
-                            value={field.value}
-                            disabled={!canAnalyze || useUrl}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione o estado" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {estadosBrasil.map((estado) => (
-                                <SelectItem key={estado} value={estado}>
-                                  {estado}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="cidade"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Cidade (Opcional)</FormLabel>
-                          <Select 
-                            onValueChange={(value) => handleFilterChange("cidade", value)} 
-                            value={field.value}
-                            disabled={!canAnalyze || useUrl || !watchedEstado}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione a cidade" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {(cidadesPorEstado[watchedEstado as keyof typeof cidadesPorEstado] || []).map((cidade) => (
-                                <SelectItem key={cidade} value={cidade}>
-                                  {cidade}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="categoria"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Categoria (Opcional)</FormLabel>
-                          <Select 
-                            onValueChange={(value) => {
-                              handleFilterChange("categoria", value)
-                              // Clear tipo when categoria changes
-                              form.setValue("tipoBem", "")
-                            }} 
-                            value={field.value}
-                            disabled={!canAnalyze || useUrl}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione a categoria" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {categorias.map((categoria) => (
-                                <SelectItem key={categoria} value={categoria}>
-                                  {categoria}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="tipoBem"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Tipo do Bem (Opcional)</FormLabel>
-                          <Select 
-                            onValueChange={(value) => handleFilterChange("tipoBem", value)} 
-                            value={field.value}
-                            disabled={!canAnalyze || useUrl || !watchedCategoria}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione o tipo do bem" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {(tiposPorCategoria[watchedCategoria as keyof typeof tiposPorCategoria] || []).map((tipo) => (
-                                <SelectItem key={tipo} value={tipo}>
-                                  {tipo}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Status (Opcional)</FormLabel>
-                        <Select 
-                          onValueChange={(value) => handleFilterChange("status", value)} 
-                          value={field.value}
-                          disabled={!canAnalyze || useUrl}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione o status" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {statusOptions.map((status) => (
-                              <SelectItem key={status} value={status}>
-                                {status}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="valorMinimo"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Valor Mínimo (R$) - Opcional</FormLabel>
+                          <FormLabel className="flex items-center gap-2">
+                            <Link className="h-4 w-4" />
+                            URL do Leilão
+                          </FormLabel>
                           <FormControl>
                             <Input
-                              type="number"
-                              placeholder="100000"
-                              value={field.value || ""}
-                              onChange={(e) => handleFilterChange("valorMinimo", e.target.value ? Number(e.target.value) : undefined)}
-                              disabled={!canAnalyze || useUrl}
+                              placeholder="https://www.leilaoonline.com.br/leilao/12345"
+                              {...field}
+                              onChange={(e) => {
+                                field.onChange(e)
+                                handleUrlChange(e.target.value)
+                              }}
+                              disabled={!canAnalyze}
                             />
                           </FormControl>
+                          <FormDescription>
+                            Cole o link do leilão específico que deseja analisar
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+                  ) : (
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <h3 className="text-lg font-medium">Filtros de Busca</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Configure os filtros para encontrar leilões específicos
+                        </p>
+                      </div>
 
-                    <FormField
-                      control={form.control}
-                      name="valorMaximo"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Valor Máximo (R$) - Opcional</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              placeholder="500000"
-                              value={field.value || ""}
-                              onChange={(e) => handleFilterChange("valorMaximo", e.target.value ? Number(e.target.value) : undefined)}
-                              disabled={!canAnalyze || useUrl}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="estado"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Estado</FormLabel>
+                              <Select 
+                                onValueChange={(value) => handleFilterChange("estado", value)} 
+                                value={field.value}
+                                disabled={!canAnalyze}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecione o estado" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {estadosBrasil.map((estado) => (
+                                    <SelectItem key={estado} value={estado}>
+                                      {estado}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="cidade"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Cidade (Opcional)</FormLabel>
+                              <Select 
+                                onValueChange={(value) => handleFilterChange("cidade", value)} 
+                                value={field.value}
+                                disabled={!canAnalyze || !watchedEstado}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecione a cidade" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {(cidadesPorEstado[watchedEstado as keyof typeof cidadesPorEstado] || []).map((cidade) => (
+                                    <SelectItem key={cidade} value={cidade}>
+                                      {cidade}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="categoria"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Categoria (Opcional)</FormLabel>
+                              <Select 
+                                onValueChange={(value) => {
+                                  handleFilterChange("categoria", value)
+                                  // Clear tipo when categoria changes
+                                  form.setValue("tipoBem", "")
+                                }} 
+                                value={field.value}
+                                disabled={!canAnalyze}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecione a categoria" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {categorias.map((categoria) => (
+                                    <SelectItem key={categoria} value={categoria}>
+                                      {categoria}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="tipoBem"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Tipo do Bem (Opcional)</FormLabel>
+                              <Select 
+                                onValueChange={(value) => handleFilterChange("tipoBem", value)} 
+                                value={field.value}
+                                disabled={!canAnalyze || !watchedCategoria}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecione o tipo do bem" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {(tiposPorCategoria[watchedCategoria as keyof typeof tiposPorCategoria] || []).map((tipo) => (
+                                    <SelectItem key={tipo} value={tipo}>
+                                      {tipo}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name="status"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Status (Opcional)</FormLabel>
+                            <Select 
+                              onValueChange={(value) => handleFilterChange("status", value)} 
+                              value={field.value}
+                              disabled={!canAnalyze}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione o status" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {statusOptions.map((status) => (
+                                  <SelectItem key={status} value={status}>
+                                    {status}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="valorMinimo"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Valor Mínimo (R$) - Opcional</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="100000"
+                                  value={field.value || ""}
+                                  onChange={(e) => handleFilterChange("valorMinimo", e.target.value ? Number(e.target.value) : undefined)}
+                                  disabled={!canAnalyze}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="valorMaximo"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Valor Máximo (R$) - Opcional</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="500000"
+                                  value={field.value || ""}
+                                  onChange={(e) => handleFilterChange("valorMaximo", e.target.value ? Number(e.target.value) : undefined)}
+                                  disabled={!canAnalyze}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+                  )}
 
 
                   <Button 
