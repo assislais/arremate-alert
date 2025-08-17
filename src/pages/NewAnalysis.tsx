@@ -31,14 +31,30 @@ import { useToast } from "@/hooks/use-toast"
 import { formatCurrency } from "@/lib/utils"
 
 const analysisSchema = z.object({
-  leilaoUrl: z.string().url("URL inválida").min(1, "URL é obrigatória"),
-  estado: z.string().min(1, "Estado é obrigatório"),
-  cidade: z.string().min(1, "Cidade é obrigatória"),
-  tipoBem: z.string().min(1, "Tipo do bem é obrigatório"),
-  valorMinimo: z.number().min(1, "Valor mínimo é obrigatório"),
-  valorMaximo: z.number().min(1, "Valor máximo é obrigatório"),
-  observacoes: z.string().optional(),
-}).refine((data) => data.valorMaximo > data.valorMinimo, {
+  // Either URL or filters, not both
+  leilaoUrl: z.string().optional(),
+  estado: z.string().optional(),
+  cidade: z.string().optional(),
+  categoria: z.string().optional(),
+  tipoBem: z.string().optional(),
+  status: z.string().optional(),
+  valorMinimo: z.number().optional(),
+  valorMaximo: z.number().optional(),
+}).refine((data) => {
+  // Must have either URL or at least one filter
+  const hasUrl = data.leilaoUrl && data.leilaoUrl.trim().length > 0
+  const hasFilters = data.estado || data.cidade || data.categoria || data.tipoBem || data.status || (data.valorMinimo && data.valorMinimo > 0) || (data.valorMaximo && data.valorMaximo > 0)
+  return hasUrl || hasFilters
+}, {
+  message: "Preencha o URL do leilão OU pelo menos um filtro de busca",
+  path: ["leilaoUrl"],
+}).refine((data) => {
+  // If both min and max values are provided, max must be greater than min
+  if (data.valorMinimo && data.valorMaximo) {
+    return data.valorMaximo > data.valorMinimo
+  }
+  return true
+}, {
   message: "Valor máximo deve ser maior que o mínimo",
   path: ["valorMaximo"],
 })
@@ -50,6 +66,7 @@ export default function NewAnalysis() {
   const [analysisProgress, setAnalysisProgress] = useState(0)
   const [analysisStep, setAnalysisStep] = useState("")
   const [analysisComplete, setAnalysisComplete] = useState(false)
+  const [useUrl, setUseUrl] = useState(false)
   
   const { subscription, incrementUsage } = useAuthStore()
   const { toast } = useToast()
@@ -60,10 +77,11 @@ export default function NewAnalysis() {
       leilaoUrl: "",
       estado: "",
       cidade: "",
+      categoria: "",
       tipoBem: "",
-      valorMinimo: 0,
-      valorMaximo: 0,
-      observacoes: "",
+      status: "",
+      valorMinimo: undefined,
+      valorMaximo: undefined,
     },
   })
 
@@ -82,14 +100,21 @@ export default function NewAnalysis() {
     setAnalysisProgress(0)
     setAnalysisComplete(false)
 
-    // Simular processo de análise
-    const steps = [
+    // Simular processo de análise baseado no método escolhido
+    const steps = data.leilaoUrl ? [
       "Verificando URL do leilão...",
-      "Extraindo dados do imóvel...",
+      "Extraindo dados dos lotes...",
       "Consultando preços de mercado...",
       "Analisando histórico da região...",
       "Calculando riscos e margens...",
       "Gerando relatório final..."
+    ] : [
+      "Localizando junta comercial do estado...",
+      "Acessando lista de leiloeiros...",
+      "Coletando dados de todos os lotes...",
+      "Processando editais e documentos...",
+      "Analisando potencial de lucro...",
+      "Compilando relatório completo..."
     ]
 
     for (let i = 0; i < steps.length; i++) {
@@ -119,19 +144,59 @@ export default function NewAnalysis() {
     "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
   ]
 
-  const tiposBem = [
-    "Apartamento",
-    "Casa",
-    "Terreno",
-    "Sala Comercial",
-    "Loja",
-    "Galpão",
-    "Chácara",
-    "Fazenda",
-    "Outro"
+  const categorias = [
+    "Veículos",
+    "Imóveis", 
+    "Bens Diversos"
   ]
 
+  const tiposPorCategoria = {
+    "Veículos": ["Carro", "Moto", "Caminhão", "Van", "SUV", "Ônibus", "Outro"],
+    "Imóveis": ["Apartamento", "Casa", "Terreno", "Sala Comercial", "Loja", "Galpão", "Chácara", "Fazenda"],
+    "Bens Diversos": ["Máquinas", "Equipamentos", "Móveis", "Joias", "Arte", "Eletrônicos", "Outros"]
+  }
+
+  const statusOptions = [
+    "Em andamento",
+    "Encerrado", 
+    "Em breve"
+  ]
+
+  const cidadesPorEstado = {
+    "SP": ["São Paulo", "Campinas", "Santos", "Ribeirão Preto", "São José dos Campos"],
+    "RJ": ["Rio de Janeiro", "Niterói", "Petrópolis", "Nova Iguaçu", "Duque de Caxias"],
+    "MG": ["Belo Horizonte", "Uberlândia", "Contagem", "Juiz de Fora", "Betim"],
+    "RS": ["Porto Alegre", "Caxias do Sul", "Pelotas", "Canoas", "Santa Maria"],
+    // Add more as needed
+  }
+
   const canAnalyze = subscription && subscription.usage.analyses < subscription.limits.analyses
+  const watchedUrl = form.watch("leilaoUrl")
+  const watchedEstado = form.watch("estado")
+  const watchedCategoria = form.watch("categoria")
+
+  // Handle URL vs Filters mutual exclusivity
+  const handleUrlChange = (value: string) => {
+    setUseUrl(value.trim().length > 0)
+    if (value.trim().length > 0) {
+      // Clear filters when URL is entered
+      form.setValue("estado", "")
+      form.setValue("cidade", "")
+      form.setValue("categoria", "")
+      form.setValue("tipoBem", "")
+      form.setValue("status", "")
+      form.setValue("valorMinimo", undefined)
+      form.setValue("valorMaximo", undefined)
+    }
+  }
+
+  const handleFilterChange = (field: keyof AnalysisFormData, value: any) => {
+    if (watchedUrl && watchedUrl.trim().length > 0) {
+      form.setValue("leilaoUrl", "")
+      setUseUrl(false)
+    }
+    form.setValue(field, value)
+  }
 
   if (isAnalyzing) {
     return (
@@ -199,11 +264,11 @@ export default function NewAnalysis() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6">
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gradient mb-2">Nova Análise</h1>
         <p className="text-muted-foreground">
-          Cole o link do leilão e configure os filtros para análise
+          Cole o link do leilão OU use os filtros para busca por estado
         </p>
       </div>
 
@@ -266,22 +331,42 @@ export default function NewAnalysis() {
                       <FormItem>
                         <FormLabel className="flex items-center gap-2">
                           <Link className="h-4 w-4" />
-                          URL do Leilão
+                          URL do Leilão (Opção 1)
                         </FormLabel>
                         <FormControl>
                           <Input
                             placeholder="https://www.leilaoonline.com.br/leilao/12345"
                             {...field}
+                            onChange={(e) => {
+                              field.onChange(e)
+                              handleUrlChange(e.target.value)
+                            }}
                             disabled={!canAnalyze}
                           />
                         </FormControl>
                         <FormDescription>
-                          Cole aqui o link completo do leilão que deseja analisar
+                          Cole o link do leilão específico que deseja analisar
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-border" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">OU</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Filtros de Busca (Opção 2)</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Use os filtros para buscar leilões por estado e outros critérios
+                    </p>
+                  </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
@@ -290,7 +375,11 @@ export default function NewAnalysis() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Estado</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!canAnalyze}>
+                          <Select 
+                            onValueChange={(value) => handleFilterChange("estado", value)} 
+                            value={field.value}
+                            disabled={!canAnalyze || useUrl}
+                          >
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Selecione o estado" />
@@ -314,10 +403,89 @@ export default function NewAnalysis() {
                       name="cidade"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Cidade</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Ex: São Paulo" {...field} disabled={!canAnalyze} />
-                          </FormControl>
+                          <FormLabel>Cidade (Opcional)</FormLabel>
+                          <Select 
+                            onValueChange={(value) => handleFilterChange("cidade", value)} 
+                            value={field.value}
+                            disabled={!canAnalyze || useUrl || !watchedEstado}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione a cidade" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {(cidadesPorEstado[watchedEstado as keyof typeof cidadesPorEstado] || []).map((cidade) => (
+                                <SelectItem key={cidade} value={cidade}>
+                                  {cidade}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="categoria"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Categoria (Opcional)</FormLabel>
+                          <Select 
+                            onValueChange={(value) => {
+                              handleFilterChange("categoria", value)
+                              // Clear tipo when categoria changes
+                              form.setValue("tipoBem", "")
+                            }} 
+                            value={field.value}
+                            disabled={!canAnalyze || useUrl}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione a categoria" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {categorias.map((categoria) => (
+                                <SelectItem key={categoria} value={categoria}>
+                                  {categoria}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="tipoBem"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tipo do Bem (Opcional)</FormLabel>
+                          <Select 
+                            onValueChange={(value) => handleFilterChange("tipoBem", value)} 
+                            value={field.value}
+                            disabled={!canAnalyze || useUrl || !watchedCategoria}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione o tipo do bem" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {(tiposPorCategoria[watchedCategoria as keyof typeof tiposPorCategoria] || []).map((tipo) => (
+                                <SelectItem key={tipo} value={tipo}>
+                                  {tipo}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -326,20 +494,24 @@ export default function NewAnalysis() {
 
                   <FormField
                     control={form.control}
-                    name="tipoBem"
+                    name="status"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Tipo do Bem</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!canAnalyze}>
+                        <FormLabel>Status (Opcional)</FormLabel>
+                        <Select 
+                          onValueChange={(value) => handleFilterChange("status", value)} 
+                          value={field.value}
+                          disabled={!canAnalyze || useUrl}
+                        >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Selecione o tipo do bem" />
+                              <SelectValue placeholder="Selecione o status" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {tiposBem.map((tipo) => (
-                              <SelectItem key={tipo} value={tipo}>
-                                {tipo}
+                            {statusOptions.map((status) => (
+                              <SelectItem key={status} value={status}>
+                                {status}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -355,14 +527,14 @@ export default function NewAnalysis() {
                       name="valorMinimo"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Valor Mínimo (R$)</FormLabel>
+                          <FormLabel>Valor Mínimo (R$) - Opcional</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
                               placeholder="100000"
-                              {...field}
-                              onChange={(e) => field.onChange(Number(e.target.value))}
-                              disabled={!canAnalyze}
+                              value={field.value || ""}
+                              onChange={(e) => handleFilterChange("valorMinimo", e.target.value ? Number(e.target.value) : undefined)}
+                              disabled={!canAnalyze || useUrl}
                             />
                           </FormControl>
                           <FormMessage />
@@ -375,14 +547,14 @@ export default function NewAnalysis() {
                       name="valorMaximo"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Valor Máximo (R$)</FormLabel>
+                          <FormLabel>Valor Máximo (R$) - Opcional</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
                               placeholder="500000"
-                              {...field}
-                              onChange={(e) => field.onChange(Number(e.target.value))}
-                              disabled={!canAnalyze}
+                              value={field.value || ""}
+                              onChange={(e) => handleFilterChange("valorMaximo", e.target.value ? Number(e.target.value) : undefined)}
+                              disabled={!canAnalyze || useUrl}
                             />
                           </FormControl>
                           <FormMessage />
@@ -391,24 +563,6 @@ export default function NewAnalysis() {
                     />
                   </div>
 
-                  <FormField
-                    control={form.control}
-                    name="observacoes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Observações (Opcional)</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Adicione informações extras sobre o imóvel..."
-                            className="min-h-[100px]"
-                            {...field}
-                            disabled={!canAnalyze}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
 
                   <Button 
                     type="submit" 
@@ -427,41 +581,27 @@ export default function NewAnalysis() {
         <div className="space-y-4">
           <Card className="card-glow">
             <CardHeader>
-              <CardTitle className="text-lg">Como Funciona</CardTitle>
+              <CardTitle className="text-lg">Métodos de Análise</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
-              <div className="flex items-start gap-3">
-                <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-primary font-bold text-xs">1</span>
-                </div>
+              <div className="space-y-3">
                 <div>
-                  <h4 className="font-medium">Cole o Link</h4>
+                  <h4 className="font-medium text-primary mb-1">Opção 1: URL Específica</h4>
                   <p className="text-muted-foreground">
-                    Insira a URL do leilão que deseja analisar
+                    Analise um leilão específico colando o link direto
                   </p>
                 </div>
-              </div>
 
-              <div className="flex items-start gap-3">
-                <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-primary font-bold text-xs">2</span>
-                </div>
                 <div>
-                  <h4 className="font-medium">Configure Filtros</h4>
+                  <h4 className="font-medium text-primary mb-1">Opção 2: Busca por Estado</h4>
                   <p className="text-muted-foreground">
-                    Defina localização e faixa de preço
+                    Encontre todas as oportunidades de um estado através das juntas comerciais
                   </p>
                 </div>
-              </div>
 
-              <div className="flex items-start gap-3">
-                <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-primary font-bold text-xs">3</span>
-                </div>
-                <div>
-                  <h4 className="font-medium">Receba Análise</h4>
-                  <p className="text-muted-foreground">
-                    Relatório completo em até 2 minutos
+                <div className="pt-2 border-t border-border">
+                  <p className="text-xs text-muted-foreground">
+                    💡 A busca por estado percorre todos os leiloeiros cadastrados na junta comercial do estado selecionado
                   </p>
                 </div>
               </div>
