@@ -20,6 +20,7 @@ import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuthStore } from "@/store/authStore"
 import { formatCurrency, formatDateTime } from "@/lib/utils"
+import BestOpportunities from "@/components/BestOpportunities"
 
 interface DashboardMetrics {
   leiloesAtivos: number
@@ -296,6 +297,9 @@ export default function Dashboard() {
           </>
         )}
       </div>
+
+      {/* Best Opportunities - Available to all plans */}
+      <BestOpportunities />
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

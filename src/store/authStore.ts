@@ -11,7 +11,7 @@ export interface User {
 
 export interface Subscription {
   id: string
-  plan: 'basico' | 'elite'
+  plan: 'basic' | 'pro' | 'elite'
   status: 'active' | 'cancelled' | 'expired'
   startDate: string
   endDate: string
@@ -21,6 +21,8 @@ export interface Subscription {
     devices: number
     states: number | -1 // -1 = unlimited
     bestOpportunities: boolean
+    eliteFeatures?: boolean
+    communityAccess?: boolean
   }
   usage: {
     analyses: number
@@ -85,7 +87,9 @@ export const useAuthStore = create<AuthState>()(
                 exports: 25, 
                 devices: 2, 
                 states: -1, 
-                bestOpportunities: true 
+                bestOpportunities: true,
+                eliteFeatures: true,
+                communityAccess: true
               },
               usage: { analyses: 3, exports: 1, activeDevices: 1 },
               discounts: { visitDiscounts: 2, totalSaved: 20.00 },
@@ -126,16 +130,16 @@ export const useAuthStore = create<AuthState>()(
           
           const mockSubscription: Subscription = {
             id: '1',
-            plan: 'basico',
+            plan: 'basic',
             status: 'active',
             startDate: new Date().toISOString(),
             endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
             limits: { 
-              analyses: 5, 
-              exports: 3, 
+              analyses: 1, 
+              exports: 5, 
               devices: 1, 
               states: 1, 
-              bestOpportunities: false 
+              bestOpportunities: true 
             },
             usage: { analyses: 0, exports: 0, activeDevices: 1 },
             discounts: { visitDiscounts: 0, totalSaved: 0 },

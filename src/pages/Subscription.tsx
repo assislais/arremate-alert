@@ -34,43 +34,59 @@ export default function Subscription() {
 
   const plans: Plan[] = [
     {
-      id: 'basico',
+      id: 'basic',
       name: 'Básico',
-      price: 29.90,
-      originalPrice: 49.90,
-      description: 'Perfeito para iniciantes',
+      price: 49.90,
+      description: 'Ideal para iniciantes',
       icon: Zap,
       features: [
-        '5 análises por mês',
-        '3 exportações por mês',
-        '1 dispositivo',
-        '1 estado',
-        'Relatórios básicos',
+        '1 análise por mês',
+        '1 dispositivo (desktop ou mobile)',
+        'Seleção de 1 estado',
+        'Análise básica de propriedades e veículos',
+        '"Melhores Oportunidades Hoje" na HOME',
         'Suporte por email'
       ],
-      limits: { analyses: 5, exports: 3 },
+      limits: { analyses: 1, exports: 5 },
       color: 'border-muted'
     },
     {
-      id: 'elite',
-      name: 'Elite',
+      id: 'pro',
+      name: 'Pro',
       price: 79.90,
-      originalPrice: 129.90,
-      description: 'Para investidores sérios',
-      icon: Crown,
+      description: 'Para investidores ativos',
+      icon: Star,
       popular: true,
       features: [
         '10 análises por mês',
         '1 desktop + 1 mobile',
         'Múltiplos estados',
-        'Aba "Melhores oportunidades hoje"',
+        'Todas as funcionalidades do Básico',
+        'Análises ilimitadas',
         'Relatórios avançados',
+        'Suporte prioritário'
+      ],
+      limits: { analyses: 10, exports: 50 },
+      color: 'border-warning'
+    },
+    {
+      id: 'elite',
+      name: 'Elite',
+      price: 229.90,
+      description: 'Para profissionais sérios',
+      icon: Crown,
+      features: [
+        '50 análises detalhadas por mês',
+        'Todas as funcionalidades do Pro',
+        'Avaliação de leiloeiros',
+        'Comunidade exclusiva de arrematadores',
         'Suporte prioritário',
         'Alertas personalizados',
-        'Análise de risco detalhada',
-        'Histórico completo'
+        'Controle anti-compartilhamento',
+        'Histórico completo',
+        'Análise de risco detalhada'
       ],
-      limits: { analyses: 10, exports: 25 },
+      limits: { analyses: 50, exports: -1 },
       color: 'border-primary'
     }
   ]
@@ -87,12 +103,14 @@ export default function Subscription() {
       if (plan && subscription) {
         const newSubscription = {
           ...subscription,
-          plan: planId as 'basico' | 'elite',
+          plan: planId as 'basic' | 'pro' | 'elite',
           limits: { 
             ...plan.limits, 
-            devices: planId === 'elite' ? 2 : 1,
-            states: planId === 'elite' ? -1 : 1,
-            bestOpportunities: planId === 'elite'
+            devices: planId === 'basic' ? 1 : 2,
+            states: planId === 'basic' ? 1 : -1,
+            bestOpportunities: true, // All plans now have it on HOME
+            eliteFeatures: planId === 'elite',
+            communityAccess: planId === 'elite'
           },
           usage: { analyses: 0, exports: 0, activeDevices: 1 } // Reset usage
         }
